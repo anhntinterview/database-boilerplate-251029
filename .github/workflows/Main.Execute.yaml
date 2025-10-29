@@ -41,6 +41,7 @@ jobs:
     # ========================
     backup:
         name: Backup Databases
+        needs: [lint-pr, lint-actions]
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/Backup.Database.yaml@ci/setup-workflows
         with:
             backup_dir: "/var/backups"
