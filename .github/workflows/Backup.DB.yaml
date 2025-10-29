@@ -1,0 +1,79 @@
+name: Backup.Database
+
+on:
+    workflow_call:
+        inputs:
+            backup_dir:
+                description: "Path to backup directory on server"
+                required: false
+                default: "/var/backups"
+                type: string
+            mongo_enabled:
+                required: false
+                type: boolean
+                default: true
+            postgres_enabled:
+                required: false
+                type: boolean
+                default: true
+
+jobs:
+    backup:
+        name: Backup Databases on Remote Server
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Setup SSH
+              uses: webfactory/ssh-agent@v0.9.0
+              with:
+                  ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+            - name: Add known hosts
+              run: |
+                  mkdir -p ~/.ssh
+                  chmod 700 ~/.ssh
+                  ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+                  chmod 644 ~/.ssh/known_hosts
+
+            - name: Run database backups
+              env:
+                  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+                  SERVER_USER: ${{ secrets.SERVER_USER }}
+                  SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+                  BACKUP_DIR: ${{ inputs.backup_dir }}
+                  MONGO_ENABLED: ${{ inputs.mongo_enabled }}
+                  POSTGRES_ENABLED: ${{ inputs.postgres_enabled }}
+              run: |
+                  TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+                  BACKUP_PATH="$BACKUP_DIR/db_backup_$TIMESTAMP"
+                  echo "🧱 Creating backup folder $BACKUP_PATH"
+
+                  ssh "$SERVER_USER"@"$SERVER_HOST" bash -s -- "$SERVER_PASSWORD" "$BACKUP_PATH" "$MONGO_ENABLED" "$POSTGRES_ENABLED" <<'EOF'
+                    set -e
+                    SERVER_PASSWORD="$1"
+                    BACKUP_PATH="$2"
+                    MONGO_ENABLED="$3"
+                    POSTGRES_ENABLED="$4"
+
+                    echo "$SERVER_PASSWORD" | sudo -S mkdir -p "$BACKUP_PATH"
+
+                    if [ "$MONGO_ENABLED" = "true" ]; then
+                        if command -v mongodump &>/dev/null; then
+                        echo "📦 Backing up MongoDB..."
+                        echo "$SERVER_PASSWORD" | sudo -S mongodump --archive="$BACKUP_PATH/mongo.gz" --gzip || echo "⚠️ MongoDB backup failed"
+                        else
+                        echo "⚠️ mongodump not found, skipping MongoDB backup"
+                        fi
+                    fi
+
+                    if [ "$POSTGRES_ENABLED" = "true" ]; then
+                        if command -v pg_dumpall &>/dev/null; then
+                        echo "📦 Backing up PostgreSQL..."
+                        echo "$SERVER_PASSWORD" | sudo -S pg_dumpall > "$BACKUP_PATH/postgres.sql" || echo "⚠️ PostgreSQL backup failed"
+                        else
+                        echo "⚠️ pg_dumpall not found, skipping PostgreSQL backup"
+                        fi
+                    fi
+
+                    echo "✅ Backup completed at $BACKUP_PATH"
+                  EOF
