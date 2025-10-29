@@ -41,6 +41,7 @@ jobs:
     # ========================
     backup:
         name: Backup Databases
+        needs: [lint-pr, lint-actions]
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/Backup.Database.yaml@ci/setup-workflows
         with:
             backup_dir: "/var/backups"
@@ -88,11 +89,9 @@ jobs:
               id: version
               run: |
                   LATEST=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-                  MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
-                  MINOR=$(echo "$LATEST" | cut -d. -f2)
                   PATCH=$(echo "$LATEST" | cut -d. -f3)
                   NEXT=$((PATCH + 1))
-                  echo "next_patch=$NEXT" >> $GITHUB_OUTPUT
+                  echo "next_patch=$NEXT" >> "$GITHUB_OUTPUT"
                   echo "📦 Latest tag: $LATEST"
                   echo "➡️ Next patch version: $NEXT"
 

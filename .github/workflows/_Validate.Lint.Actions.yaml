@@ -48,7 +48,8 @@ jobs:
           -ignore 'SC2129' \
           -ignore 'SC2005' \
           -ignore 'SC2046' \
-          -ignore 'SC2155'
+          -ignore 'SC2155' \
+          -ignore '\[line-length\]'
       - name: Generate output
         if: success()
         run: |

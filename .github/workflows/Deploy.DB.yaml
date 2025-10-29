@@ -1,3 +1,4 @@
+---
 name: Deploy.Server
 
 on:
@@ -54,28 +55,28 @@ jobs:
             # Ensure Docker installed
             if ! command -v docker >/dev/null 2>&1; then
               echo "Installing Docker..."
-              echo $SERVER_PASSWORD | sudo apt-get update -y
-              echo $SERVER_PASSWORD | sudo apt-get install -y ca-certificates curl gnupg lsb-release
-              echo $SERVER_PASSWORD | sudo mkdir -p /etc/apt/keyrings
+              echo "$SERVER_PASSWORD" | sudo apt-get update -y
+              echo "$SERVER_PASSWORD" | sudo apt-get install -y ca-certificates curl gnupg lsb-release
+              echo "$SERVER_PASSWORD" | sudo mkdir -p /etc/apt/keyrings
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
               echo \
                 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-                $(lsb_release -cs) stable" | echo $SERVER_PASSWORD | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              echo $SERVER_PASSWORD | sudo apt-get update -y
-              echo $SERVER_PASSWORD | sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-              echo $SERVER_PASSWORD | sudo systemctl enable --now docker
+                $(lsb_release -cs) stable" | echo "$SERVER_PASSWORD" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              echo "$SERVER_PASSWORD" | sudo apt-get update -y
+              echo "$SERVER_PASSWORD" | sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              echo "$SERVER_PASSWORD" | sudo systemctl enable --now docker
             fi
 
-            echo $SERVER_PASSWORD | sudo mkdir -p "\$TARGET_DIR"
-            echo $SERVER_PASSWORD | sudo chown -R $USER:$USER "\$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo mkdir -p "\$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo chown -R "$USER:$USER" "\$TARGET_DIR"
             cd "\$TARGET_DIR"
 
             if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
               echo "🚀 Starting Docker Compose..."
               if docker compose version >/dev/null 2>&1; then
-                echo $SERVER_PASSWORD | sudo docker compose up -d --build --remove-orphans
+                echo "$SERVER_PASSWORD" | sudo docker compose up -d --build --remove-orphans
               else
-                echo $SERVER_PASSWORD | sudo docker-compose up -d --build --remove-orphans
+                echo "$SERVER_PASSWORD" | sudo docker-compose up -d --build --remove-orphans
               fi
             else
               echo "❌ No docker-compose file found!"
@@ -83,5 +84,5 @@ jobs:
             fi
 
             echo "✅ Deployment complete!"
-            echo $SERVER_PASSWORD | sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+            echo "$SERVER_PASSWORD" | sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
           EOF
