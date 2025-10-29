@@ -1,0 +1,87 @@
+name: Deploy.Server
+
+on:
+  workflow_call:
+
+jobs:
+  deploy:
+    name: Build, Copy & Deploy to server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Copy repository to remote server
+        uses: appleboy/scp-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: |
+            .
+          target: ${{ secrets.SERVER_APP_DIR }}
+
+      - name: Deploy with Docker Compose
+        env:
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          TARGET_DIR: ${{ secrets.SERVER_APP_DIR }}
+          SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
+        run: |
+          echo "Connecting to HOST to deploy..."
+          ssh -p "$SSH_PORT" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" <<'EOF'
+            set -euo pipefail
+            SERVER_PASSWORD="$1"
+            TARGET_DIR="${TARGET_DIR}"
+
+            echo "Working directory: \$TARGET_DIR"
+
+            # Ensure Docker installed
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Installing Docker..."
+              echo $SERVER_PASSWORD | sudo apt-get update -y
+              echo $SERVER_PASSWORD | sudo apt-get install -y ca-certificates curl gnupg lsb-release
+              echo $SERVER_PASSWORD | sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) stable" | echo $SERVER_PASSWORD | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              echo $SERVER_PASSWORD | sudo apt-get update -y
+              echo $SERVER_PASSWORD | sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              echo $SERVER_PASSWORD | sudo systemctl enable --now docker
+            fi
+
+            echo $SERVER_PASSWORD | sudo mkdir -p "\$TARGET_DIR"
+            echo $SERVER_PASSWORD | sudo chown -R $USER:$USER "\$TARGET_DIR"
+            cd "\$TARGET_DIR"
+
+            if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
+              echo "🚀 Starting Docker Compose..."
+              if docker compose version >/dev/null 2>&1; then
+                echo $SERVER_PASSWORD | sudo docker compose up -d --build --remove-orphans
+              else
+                echo $SERVER_PASSWORD | sudo docker-compose up -d --build --remove-orphans
+              fi
+            else
+              echo "❌ No docker-compose file found!"
+              exit 1
+            fi
+
+            echo "✅ Deployment complete!"
+            echo $SERVER_PASSWORD | sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          EOF

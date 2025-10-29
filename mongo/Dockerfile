@@ -1,0 +1,9 @@
+FROM mongo:7.0
+
+ENV MONGO_INITDB_PORT_USERNAME=admin
+ENV MONGO_INITDB_PORT_PASSWORD=secret
+ENV MONGO_INITDB_DATABASE=mongo_appdb
+
+COPY ./init/ /docker-entrypoint-initdb.d/
+
+EXPOSE 27017

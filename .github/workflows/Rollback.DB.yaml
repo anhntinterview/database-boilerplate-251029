@@ -1,0 +1,35 @@
+name: Rollback.Application
+
+on:
+    workflow_call:
+
+jobs:
+    rollback:
+        name: Rollback Last Stable Version
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: SSH Rollback
+              env:
+                  SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+                  SERVER_USER: ${{ secrets.SERVER_USER }}
+                  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+              run: |
+                  echo "⚙️ Rolling back previous container..."
+                  ssh $SERVER_USER@$SERVER_HOST bash -s -- "$SERVER_PASSWORD" <<'EOF'
+                    set -e
+                    SERVER_PASSWORD="$1"
+
+                    echo "🔍 Checking rollback candidates..."
+                    PREV_IMAGE=$(echo $SERVER_PASSWORD | sudo -S docker images --format "{{.Repository}}:{{.Tag}}" | sort | tail -n 2 | head -n 1)
+                    if [ -z "$PREV_IMAGE" ]; then
+                      echo "❌ No previous image found to rollback."
+                      exit 1
+                    fi
+
+                    echo "♻️ Rolling back to $PREV_IMAGE ..."
+                    echo $SERVER_PASSWORD | sudo -S docker stop $(docker ps -q) || true
+                    echo $SERVER_PASSWORD | sudo -S docker run -d --restart=always "$PREV_IMAGE"
+
+                    echo "✅ Rollback complete."
+                  EOF

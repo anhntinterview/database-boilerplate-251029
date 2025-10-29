@@ -1,0 +1,176 @@
+name: Setup.NGINX.Proxy
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [setup-nginx]
+
+jobs:
+  setup-database-nginx:
+    name: Configure Database Reverse Proxy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Add known hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Configure Nginx Reverse Proxy for Databases
+        env:
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          MONGO_PORT: ${{ secrets.MONGO_PORT }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+        run: |
+          echo "⚙️ Setting up Nginx proxy for MongoDB and PostgreSQL..."
+
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$DOMAIN_NAME" "$MONGO_PORT" "$POSTGRES_PORT" <<'EOF'
+          set -e
+          SERVER_PASSWORD="$1"
+          DOMAIN="$2"
+          MONGO_PORT="$3"
+          POSTGRES_PORT="$4"
+
+          NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}.conf"
+
+          echo "🔍 Checking Nginx installation..."
+          if ! command -v nginx &>/dev/null; then
+            echo "📦 Installing Nginx..."
+            echo $SERVER_PASSWORD | sudo -S apt update -y
+            echo $SERVER_PASSWORD | sudo -S apt install nginx -y
+            echo $SERVER_PASSWORD | sudo -S systemctl enable nginx
+            echo $SERVER_PASSWORD | sudo -S systemctl start nginx
+          fi
+          echo "✅ Nginx ready."
+
+          echo "🔍 Checking Certbot installation..."
+          if ! command -v certbot &>/dev/null; then
+            echo "📦 Installing Certbot..."
+            echo $SERVER_PASSWORD | sudo -S apt install -y certbot python3-certbot-nginx
+          fi
+          echo "✅ Certbot ready."
+
+          echo "🔍 Checking htpasswd..."
+          if ! command -v htpasswd &>/dev/null; then
+            echo "📦 Installing apache2-utils..."
+            echo $SERVER_PASSWORD | sudo -S apt install -y apache2-utils
+          fi
+          echo "✅ htpasswd ready."
+
+          # Basic Auth setup
+          echo $SERVER_PASSWORD | sudo -S htpasswd -cb /etc/nginx/.htpasswd "$USER" "$SERVER_PASSWORD"
+
+          # -----------------------------------------------------
+          # 1. Temporary HTTP config for Certbot validation
+          # -----------------------------------------------------
+          echo "🧱 Creating temporary HTTP-only config for $DOMAIN ..."
+          sudo tee "$NGINX_CONF" > /dev/null <<CONFIG
+          server {
+            listen 80;
+            server_name $DOMAIN;
+
+            location /mongo/ {
+              proxy_pass http://localhost:$MONGO_PORT/;
+              proxy_set_header Host \$host;
+            }
+
+            location /postgres/ {
+              proxy_pass http://localhost:$POSTGRES_PORT/;
+              proxy_set_header Host \$host;
+            }
+          }
+          CONFIG
+
+          echo $SERVER_PASSWORD | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
+          echo $SERVER_PASSWORD | sudo -S nginx -t
+          echo $SERVER_PASSWORD | sudo -S systemctl reload nginx
+          echo "✅ Temporary HTTP config loaded."
+
+          # -----------------------------------------------------
+          # 2. Issue SSL certificate
+          # -----------------------------------------------------
+          echo "🔍 Checking SSL certificate for $DOMAIN..."
+          if [ -d "$CERT_PATH" ] && [ -f "$CERT_PATH/fullchain.pem" ]; then
+            echo "✅ SSL certificate already exists at $CERT_PATH"
+          else
+            echo "📜 Requesting new SSL certificate..."
+            if ! echo $SERVER_PASSWORD | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
+              echo "❌ Failed to issue SSL certificate. Check DNS and port 80 access."
+              exit 1
+            fi
+            echo "✅ SSL certificate successfully issued for $DOMAIN"
+          fi
+
+          # -----------------------------------------------------
+          # 3. Replace config with HTTPS reverse proxy + Auth
+          # -----------------------------------------------------
+          echo "🧱 Creating final HTTPS config for MongoDB and PostgreSQL..."
+          sudo tee "$NGINX_CONF" > /dev/null <<CONFIG
+          # Redirect HTTP -> HTTPS
+          server {
+            listen 80;
+            server_name $DOMAIN;
+            return 301 https://\$host\$request_uri;
+          }
+
+          server {
+            listen 443 ssl http2;
+            server_name $DOMAIN;
+
+            ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+            include /etc/letsencrypt/options-ssl-nginx.conf;
+            ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+            location /mongo/ {
+              proxy_pass http://localhost:$MONGO_PORT/;
+              proxy_set_header Host \$host;
+              auth_basic "MongoDB Access";
+              auth_basic_user_file /etc/nginx/.htpasswd;
+            }
+
+            location /postgres/ {
+              proxy_pass http://localhost:$POSTGRES_PORT/;
+              proxy_set_header Host \$host;
+              auth_basic "PostgreSQL Access";
+              auth_basic_user_file /etc/nginx/.htpasswd;
+            }
+          }
+          CONFIG
+
+          echo "🔍 Testing Nginx config..."
+          echo $SERVER_PASSWORD | sudo -S nginx -t
+          echo $SERVER_PASSWORD | sudo -S systemctl reload nginx
+
+          echo "✅ Database reverse proxy configured successfully for $DOMAIN"
+          echo "🌐 Mongo: https://$DOMAIN/mongo/"
+          echo "🌐 Postgres: https://$DOMAIN/postgres/"
+          EOF
+
+      - name: Verify Nginx
+        env:
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          echo "🔎 Checking Nginx service status..."
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" << 'EOF'
+            set -e
+            SERVER_PASSWORD="$1"
+            if ! echo $SERVER_PASSWORD | sudo -S systemctl is-active --quiet nginx; then
+              echo "❌ Nginx service not active!"
+              exit 1
+            fi
+            echo "✅ Nginx service is active and running."
+          EOF
