@@ -42,7 +42,7 @@ jobs:
     backup:
         name: Backup Databases
         needs: [lint-pr, lint-actions]
-        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Backup.Database.yaml@ci/setup-workflows
+        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Backup.DB.yaml@ci/setup-workflows
         with:
             backup_dir: "/var/backups"
             mongo_enabled: true
@@ -52,7 +52,7 @@ jobs:
     # 2️⃣ DEPLOY CONTAINERS
     # ========================
     deploy:
-        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.Server.yaml@ci/setup-workflows
+        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.DB.yaml@ci/setup-workflows
         needs: backup
         secrets: inherit
 
@@ -111,4 +111,4 @@ jobs:
         name: Rollback if Deploy Fails
         needs: [deploy]
         if: failure()
-        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Rollback.Application.yaml@ci/setup-workflows
+        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Rollback.DB.yaml@ci/setup-workflows
