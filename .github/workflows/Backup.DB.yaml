@@ -48,7 +48,7 @@ jobs:
                   BACKUP_PATH="$BACKUP_DIR/db_backup_$TIMESTAMP"
                   echo "🧱 Creating backup folder $BACKUP_PATH"
 
-                  ssh "$SERVER_USER"@"$SERVER_HOST" bash -s -- ""$SERVER_PASSWORD"" "$BACKUP_PATH" "$MONGO_ENABLED" "$POSTGRES_ENABLED" <<'EOF'
+                  ssh "$SERVER_USER"@"$SERVER_HOST" bash -s -- "$SERVER_PASSWORD" "$BACKUP_PATH" "$MONGO_ENABLED" "$POSTGRES_ENABLED" <<'EOF'
                     set -e
                     SERVER_PASSWORD="$1"
                     BACKUP_PATH="$2"
