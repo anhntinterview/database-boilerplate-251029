@@ -16,7 +16,7 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
           echo "⚙️ Rolling back previous container..."
-          ssh "$SERVER_USER"@"$SERVER_HOST" bash -s -- ""$SERVER_PASSWORD"" <<'EOF'
+          ssh "$SERVER_USER"@"$SERVER_HOST" bash -s -- "$SERVER_PASSWORD" <<'EOF'
             set -e
             SERVER_PASSWORD="$1"
 
@@ -28,7 +28,7 @@ jobs:
             fi
 
             echo "♻️ Rolling back to $PREV_IMAGE ..."
-            echo "$SERVER_PASSWORD" | sudo -S docker stop $(docker ps -q) || true
+            echo "$SERVER_PASSWORD" | sudo -S docker stop $(docker ps -q)
             echo "$SERVER_PASSWORD" | sudo -S docker run -d --restart=always "$PREV_IMAGE"
 
             echo "✅ Rollback complete."
