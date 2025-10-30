@@ -14,14 +14,18 @@ services:
       - "${PORT}:${PORT}"
 
   mongo:
-    build: ./mongo
+    build:
+      context: ./mongo
+      dockerfile: Dockerfile
     container_name: mongo
     restart: always
     volumes:
       - mongo_data:/data/db
 
   postgres:
-    build: ./postgres
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: postgres
     restart: always
     volumes:
