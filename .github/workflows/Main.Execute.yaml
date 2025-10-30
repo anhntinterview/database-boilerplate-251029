@@ -52,6 +52,7 @@ jobs:
     # 2️⃣ DEPLOY CONTAINERS
     # ========================
     deploy:
+        name: Deploy Containers
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.DB.yaml@ci/setup-workflows
         needs: backup
         if: ${{ needs.backup.outputs.db-status == 'backup-successful' || needs.backup.outputs.db-status == 'database-not-installed' }}
