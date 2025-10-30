@@ -58,7 +58,7 @@ jobs:
           SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
         run: |
           echo "Connecting to HOST to deploy..."
-          ssh -p "$SSH_PORT" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "TARGET_DIR" <<'EOF'
+          ssh -p "$SSH_PORT" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$TARGET_DIR" <<'EOF'
             set -euo pipefail
             SERVER_PASSWORD="$1"
             TARGET_DIR="$2"
