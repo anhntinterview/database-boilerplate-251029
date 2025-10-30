@@ -32,6 +32,7 @@ jobs:
     # ========================
     lint-actions:
         name: Validate.Lint.Actions
+        if: ${{ github.event_name == 'pull_request' }}
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/_Validate.Lint.Actions.yaml@ci/setup-workflows
 
     lint-pr:
