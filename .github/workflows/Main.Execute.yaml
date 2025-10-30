@@ -72,6 +72,7 @@ jobs:
             SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
             SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
             SSH_PORT: ${{ secrets.SSH_PORT }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # ========================
     # 3️⃣ SETUP NGINX PROXY
