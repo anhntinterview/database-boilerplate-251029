@@ -22,6 +22,15 @@ on:
             db_status:
                 description: "Status of backup"
                 value: ${{ jobs.backup.outputs.db_status }}
+        secrets:
+            SERVER_SSH_KEY:
+                required: true
+            SERVER_HOST:
+                required: true
+            SERVER_USER:
+                required: true
+            SERVER_PASSWORD:
+                required: true
 
 jobs:
     backup:
