@@ -80,9 +80,9 @@ jobs:
               echo "$SERVER_PASSWORD" | sudo -S systemctl enable --now docker
             fi
 
-            echo "$SERVER_PASSWORD" | sudo -S mkdir -p "\$TARGET_DIR"
-            echo "$SERVER_PASSWORD" | sudo -S chown -R "$USER:$USER" "\$TARGET_DIR"
-            cd "\$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo -S mkdir -p "$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo -S chown -R "$USER:$USER" "$TARGET_DIR"
+            cd "$TARGET_DIR"
 
             if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
               echo "🚀 Starting Docker Compose..."
