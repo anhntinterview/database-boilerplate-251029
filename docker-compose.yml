@@ -1,26 +1,19 @@
 version: "3.8"
 
 services:
-  app:
-    image: ssre_appdb:latest
-    container_name: ssre_appdb
-    restart: always
-    env_file: .env
-    depends_on:
-      - mongo
-      - postgres
-    ports:
-      - "3002:3002"
-
   mongo:
-    build: ./mongo
+    build:
+      context: ./mongo
+      dockerfile: Dockerfile
     container_name: mongo
     restart: always
     volumes:
       - mongo_data:/data/db
 
   postgres:
-    build: ./postgres
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: postgres
     restart: always
     volumes:

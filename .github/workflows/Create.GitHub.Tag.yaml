@@ -30,28 +30,13 @@ jobs:
         run: |
           set -e
           VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "🏷️ Creating tags for ${VERSION}"
+          echo "🏷️ Creating tag ${VERSION}"
 
-          # Configure Git user
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Fetch latest tags to avoid conflicts
           git fetch --tags
 
-          # Create or update patch tag (v1.2.3)
           git tag -f "${VERSION}"
           git push origin "${VERSION}" --force
 
-          # Create or update minor tag (v1.2)
-          git tag -f "v${MAJOR}.${MINOR}"
-          git push origin "v${MAJOR}.${MINOR}" --force
-
-          # Create or update major tag (v1)
-          git tag -f "v${MAJOR}"
-          git push origin "v${MAJOR}" --force
-
-          echo "✅ Tags created:"
-          echo "  - ${VERSION}"
-          echo "  - v${MAJOR}.${MINOR}"
-          echo "  - v${MAJOR}"
+          echo "✅ Tag created: ${VERSION}"

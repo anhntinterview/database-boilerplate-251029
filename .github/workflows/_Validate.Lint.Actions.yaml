@@ -2,11 +2,6 @@ name: _Validate.Lint.Actions
 
 on:
   workflow_call:
-  pull_request:
-    branches:
-      - "main"
-    paths:
-      - ".github/**"
 jobs:
   validate:
     name: Validate.Lint.Actions
@@ -35,12 +30,10 @@ jobs:
           pip install --user yamllint
 
       - name: Yaml-lint workflows & actions
-        if: ${{ always() }}
         run: |
           yamllint .github
 
       - name: Run actionlint
-        if: ${{ always() }}
         id: lint
         run: |
           "${{ steps.get_actionlint.outputs.executable }}" -color \
@@ -55,6 +48,6 @@ jobs:
           echo "Workflow validation was successful!"  >>  "$GITHUB_STEP_SUMMARY"
 
       - name: Generate output
-        if: ${{failure() }}
+        if: failure()
         run: |
           echo "Workflow validation failure!!!"  >> "$GITHUB_STEP_SUMMARY"

@@ -1,9 +1,22 @@
----
 name: Deploy.DB
 
 on:
   workflow_call:
-
+    secrets:
+      SERVER_SSH_KEY:
+        required: true
+      SERVER_HOST:
+        required: true
+      SERVER_USER:
+        required: true
+      SERVER_APP_DIR:
+        required: true
+      SERVER_SSH_PORT:
+        required: true
+      SERVER_PASSWORD:
+        required: true
+      SSH_PORT:
+        required: true
 jobs:
   deploy:
     name: Build, Copy & Deploy to server
@@ -28,7 +41,7 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
       - name: Copy repository to remote server
-        uses: appleboy/scp-action@v0.1.10
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -45,38 +58,54 @@ jobs:
           SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
         run: |
           echo "Connecting to HOST to deploy..."
-          ssh -p "$SSH_PORT" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" <<'EOF'
+          ssh -p "$SSH_PORT" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$TARGET_DIR" <<'EOF'
             set -euo pipefail
             SERVER_PASSWORD="$1"
-            TARGET_DIR="${TARGET_DIR}"
+            TARGET_DIR="$2"
 
             echo "Working directory: \$TARGET_DIR"
 
             # Ensure Docker installed
             if ! command -v docker >/dev/null 2>&1; then
               echo "Installing Docker..."
-              echo "$SERVER_PASSWORD" | sudo apt-get update -y
-              echo "$SERVER_PASSWORD" | sudo apt-get install -y ca-certificates curl gnupg lsb-release
-              echo "$SERVER_PASSWORD" | sudo mkdir -p /etc/apt/keyrings
+              echo "$SERVER_PASSWORD" | sudo -S apt-get update -y
+              echo "$SERVER_PASSWORD" | sudo -S apt-get install -y ca-certificates curl gnupg lsb-release
+              echo "$SERVER_PASSWORD" | sudo -S mkdir -p /etc/apt/keyrings
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
               echo \
                 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-                $(lsb_release -cs) stable" | echo "$SERVER_PASSWORD" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              echo "$SERVER_PASSWORD" | sudo apt-get update -y
-              echo "$SERVER_PASSWORD" | sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-              echo "$SERVER_PASSWORD" | sudo systemctl enable --now docker
+                $(lsb_release -cs) stable" | echo "$SERVER_PASSWORD" | sudo -S tee /etc/apt/sources.list.d/docker.list > /dev/null
+              echo "$SERVER_PASSWORD" | sudo -S apt-get update -y
+              echo "$SERVER_PASSWORD" | sudo -S apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              echo "$SERVER_PASSWORD" | sudo -S systemctl enable --now docker
             fi
 
-            echo "$SERVER_PASSWORD" | sudo mkdir -p "\$TARGET_DIR"
-            echo "$SERVER_PASSWORD" | sudo chown -R "$USER:$USER" "\$TARGET_DIR"
-            cd "\$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo -S mkdir -p "$TARGET_DIR"
+            echo "$SERVER_PASSWORD" | sudo -S chown -R "$USER:$USER" "$TARGET_DIR"
+            cd "$TARGET_DIR"
 
             if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
               echo "🚀 Starting Docker Compose..."
-              if docker compose version >/dev/null 2>&1; then
-                echo "$SERVER_PASSWORD" | sudo docker compose up -d --build --remove-orphans
+
+              # --- Ensure Docker Compose (plugin or standalone) is installed ---
+              if ! docker compose version >/dev/null 2>&1; then
+                echo "⚙️ Docker Compose plugin not found, checking standalone version..."
+                if ! command -v docker-compose >/dev/null 2>&1; then
+                  echo "⚙️ Installing latest standalone Docker Compose..."
+                  sudo -S curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                  sudo -S chmod +x /usr/local/bin/docker-compose
+                  echo "✅ Standalone Docker Compose installed!"
+                else
+                  echo "✅ Found existing standalone Docker Compose."
+                fi
               else
-                echo "$SERVER_PASSWORD" | sudo docker-compose up -d --build --remove-orphans
+                echo "✅ Docker Compose plugin available."
+              fi
+
+              if docker compose version >/dev/null 2>&1; then
+                echo "$SERVER_PASSWORD" | sudo -S docker compose up -d --build --remove-orphans
+              else
+                echo "$SERVER_PASSWORD" | sudo -S docker-compose up -d --build --remove-orphans
               fi
             else
               echo "❌ No docker-compose file found!"
@@ -84,5 +113,5 @@ jobs:
             fi
 
             echo "✅ Deployment complete!"
-            echo "$SERVER_PASSWORD" | sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+            echo "$SERVER_PASSWORD" | sudo -S docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
           EOF
