@@ -79,16 +79,19 @@ jobs:
     # ========================
     nginx:
         name: Setup NGINX Reverse Proxy
-        runs-on: ubuntu-latest
-        needs: [deploy]
         if: success()
-        steps:
-            - name: Trigger NGINX proxy setup
-              uses: peter-evans/repository-dispatch@v3
-              with:
-                  token: ${{ secrets.REPO_DISPATCH_TOKEN }}
-                  repository: ${{ github.repository }}
-                  event-type: setup-nginx
+        needs: deploy
+        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Setup.Nginx.Proxy.yaml@ci/setup-workflows
+        secrets:
+            SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+            SERVER_HOST: ${{ secrets.SERVER_HOST }}
+            SERVER_USER: ${{ secrets.SERVER_USER }}
+            SERVER_APP_DIR: ${{ secrets.SERVER_APP_DIR }}
+            SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
+            SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+            SSH_PORT: ${{ secrets.SSH_PORT }}
+            MONGO_PORT: ${{ secrets.MONGO_PORT }}
+            POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
 
     # ========================
     # 4️⃣ VERSION TAG
@@ -96,7 +99,7 @@ jobs:
     tag-version:
         name: Determine Next Version
         runs-on: ubuntu-latest
-        needs: [deploy]
+        needs: deploy
         outputs:
             next_patch: ${{ steps.version.outputs.next_patch }}
         steps:

@@ -1,9 +1,26 @@
 name: Setup.NGINX.Proxy
 
 on:
-  workflow_dispatch:
-  repository_dispatch:
-    types: [setup-nginx]
+  workflow_call:
+    secrets:
+      SERVER_SSH_KEY:
+        required: true
+      SERVER_HOST:
+        required: true
+      SERVER_USER:
+        required: true
+      SERVER_APP_DIR:
+        required: true
+      SERVER_SSH_PORT:
+        required: true
+      SERVER_PASSWORD:
+        required: true
+      SSH_PORT:
+        required: true
+      MONGO_PORT:
+        required: true
+      POSTGRES_PORT:
+        required: true
 
 jobs:
   setup-database-nginx:
