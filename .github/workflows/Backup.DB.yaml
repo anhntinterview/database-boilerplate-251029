@@ -25,6 +25,8 @@ jobs:
     backup:
         name: Backup Databases on Remote Server
         runs-on: ubuntu-latest
+        outputs:
+            db-status: ${{ steps.set-status.outputs.db_status }}
 
         steps:
             - name: Setup SSH
@@ -40,6 +42,7 @@ jobs:
                   chmod 644 ~/.ssh/known_hosts
 
             - name: Run database backups
+              id: run-backup
               env:
                   SERVER_HOST: ${{ secrets.SERVER_HOST }}
                   SERVER_USER: ${{ secrets.SERVER_USER }}
@@ -63,21 +66,43 @@ jobs:
 
                     if [ "$MONGO_ENABLED" = "true" ]; then
                         if command -v mongodump &>/dev/null; then
+                            echo "⚠️ MongoDB not installed"
+                            exit 100
+                        fi
                         echo "📦 Backing up MongoDB..."
-                        echo "$SERVER_PASSWORD" | sudo -S mongodump --archive="$BACKUP_PATH/mongo.gz" --gzip || echo "⚠️ MongoDB backup failed"
-                        else
-                        echo "⚠️ mongodump not found, skipping MongoDB backup"
+                        if ! echo "$SERVER_PASSWORD" | sudo mongodump --archive="$BACKUP_PATH/mongo.gz" --gzip; then
+                            echo "❌ MongoDB backup failed"
+                            exit 101
                         fi
                     fi
 
                     if [ "$POSTGRES_ENABLED" = "true" ]; then
-                        if command -v pg_dumpall &>/dev/null; then
+                        if ! command -v pg_dumpall &>/dev/null; then
+                            echo "⚠️ PostgreSQL not installed"
+                            exit 102
+                        fi
                         echo "📦 Backing up PostgreSQL..."
-                        echo "$SERVER_PASSWORD" | sudo -S pg_dumpall > "$BACKUP_PATH/postgres.sql" || echo "⚠️ PostgreSQL backup failed"
-                        else
-                        echo "⚠️ pg_dumpall not found, skipping PostgreSQL backup"
+                        if ! echo "$SERVER_PASSWORD" | sudo pg_dumpall > "$BACKUP_PATH/postgres.sql"; then
+                            echo "❌ PostgreSQL backup failed"
+                            exit 103
                         fi
                     fi
 
                     echo "✅ Backup completed at $BACKUP_PATH"
                   EOF
+
+                  # Capture SSH exit code
+                  SSH_EXIT_CODE=$?
+                  if [ $SSH_EXIT_CODE -eq 100 ] || [ $SSH_EXIT_CODE -eq 102 ]; then
+                    STATUS="database-not-installed"
+                  elif [ $SSH_EXIT_CODE -eq 101 ] || [ $SSH_EXIT_CODE -eq 103 ]; then
+                    STATUS="backup-failed"
+                  else
+                    STATUS="backup-successful"
+                  fi
+
+                  echo "db_status=$STATUS" >> "$GITHUB_OUTPUT"
+            - name: Set status output
+              id: set-status
+              run: |
+                  echo "db_status=${{ steps.run-backup.outputs.db_status }}" >> "$GITHUB_OUTPUT"

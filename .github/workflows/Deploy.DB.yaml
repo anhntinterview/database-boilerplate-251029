@@ -1,5 +1,5 @@
 ---
-name: Deploy.Server
+name: Deploy.DB
 
 on:
   workflow_call:

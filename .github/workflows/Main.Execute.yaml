@@ -54,7 +54,7 @@ jobs:
     deploy:
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.DB.yaml@ci/setup-workflows
         needs: backup
-        secrets: inherit
+        if: ${{ needs.backup.outputs.db-status == 'backup-successful' || needs.backup.outputs.db-status == 'database-not-installed' }}
 
     # ========================
     # 3️⃣ SETUP NGINX PROXY
