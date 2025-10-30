@@ -2,15 +2,15 @@ version: "3.8"
 
 services:
   app:
-    image: ssre_appdb:latest
-    container_name: ssre_appdb
+    image: ${IMAGE}:latest
+    container_name: ${IMAGE}
     restart: always
     env_file: .env
     depends_on:
       - mongo
       - postgres
     ports:
-      - "3002:3002"
+      - "${PORT}:${PORT}"
 
   mongo:
     build: ./mongo
