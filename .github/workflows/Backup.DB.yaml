@@ -21,6 +21,7 @@ on:
     push:
         branches:
             - main
+
 jobs:
     backup:
         name: Backup Databases on Remote Server
@@ -64,31 +65,36 @@ jobs:
 
                     echo "$SERVER_PASSWORD" | sudo -S mkdir -p "$BACKUP_PATH"
 
+                    EXIT_CODE=0
+
                     if [ "$MONGO_ENABLED" = "true" ]; then
-                        if command -v mongodump &>/dev/null; then
+                        if ! command -v mongodump &>/dev/null; then
                             echo "⚠️ MongoDB not installed"
-                            exit 100
-                        fi
-                        echo "📦 Backing up MongoDB..."
-                        if ! echo "$SERVER_PASSWORD" | sudo mongodump --archive="$BACKUP_PATH/mongo.gz" --gzip; then
-                            echo "❌ MongoDB backup failed"
-                            exit 101
+                            EXIT_CODE=100
+                        else
+                            echo "📦 Backing up MongoDB..."
+                            if ! echo "$SERVER_PASSWORD" | sudo mongodump --archive="$BACKUP_PATH/mongo.gz" --gzip; then
+                                echo "❌ MongoDB backup failed"
+                                EXIT_CODE=101
+                            fi
                         fi
                     fi
 
                     if [ "$POSTGRES_ENABLED" = "true" ]; then
                         if ! command -v pg_dumpall &>/dev/null; then
                             echo "⚠️ PostgreSQL not installed"
-                            exit 102
-                        fi
-                        echo "📦 Backing up PostgreSQL..."
-                        if ! echo "$SERVER_PASSWORD" | sudo pg_dumpall > "$BACKUP_PATH/postgres.sql"; then
-                            echo "❌ PostgreSQL backup failed"
-                            exit 103
+                            EXIT_CODE=102
+                        else
+                            echo "📦 Backing up PostgreSQL..."
+                            if ! echo "$SERVER_PASSWORD" | sudo pg_dumpall > "$BACKUP_PATH/postgres.sql"; then
+                                echo "❌ PostgreSQL backup failed"
+                                EXIT_CODE=103
+                            fi
                         fi
                     fi
 
                     echo "✅ Backup completed at $BACKUP_PATH"
+                    exit $EXIT_CODE
                   EOF
 
                   # Capture SSH exit code
