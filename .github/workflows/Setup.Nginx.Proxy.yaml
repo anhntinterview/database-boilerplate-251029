@@ -82,15 +82,15 @@ jobs:
           fi
           echo "✅ Certbot ready."
 
-          echo "🔍 Checking htpasswd..."
-          if ! command -v htpasswd &>/dev/null; then
-            echo "📦 Installing apache2-utils..."
-            echo $SERVER_PASSWORD | sudo -S apt install -y apache2-utils
-          fi
-          echo "✅ htpasswd ready."
+          # echo "🔍 Checking htpasswd..."
+          # if ! command -v htpasswd &>/dev/null; then
+          #   echo "📦 Installing apache2-utils..."
+          #   echo $SERVER_PASSWORD | sudo -S apt install -y apache2-utils
+          # fi
+          # echo "✅ htpasswd ready."
 
-          # Basic Auth setup
-          echo $SERVER_PASSWORD | sudo -S htpasswd -cb /etc/nginx/.htpasswd "$USER" "$SERVER_PASSWORD"
+          # # Basic Auth setup
+          # echo $SERVER_PASSWORD | sudo -S htpasswd -cb /etc/nginx/.htpasswd "$USER" "$SERVER_PASSWORD"
 
           # -----------------------------------------------------
           # 1. Temporary HTTP config for Certbot validation
@@ -138,35 +138,32 @@ jobs:
           # -----------------------------------------------------
           echo "🧱 Creating final HTTPS config for MongoDB and PostgreSQL..."
           sudo tee "$NGINX_CONF" > /dev/null <<CONFIG
-          # Redirect HTTP -> HTTPS
-          server {
-            listen 80;
-            server_name $DOMAIN;
-            return 301 https://\$host\$request_uri;
-          }
+          stream {
+              upstream postgres_backend {
+                  server 127.0.0.1:$POSTGRES_PORT;
+              }
 
-          server {
-            listen 443 ssl http2;
-            server_name $DOMAIN;
+              server {
+                  listen 15432 ssl;
+                  proxy_pass postgres_backend;
+                  ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+                  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+                  proxy_timeout 10m;
+                  proxy_connect_timeout 10s;
+              }
 
-            ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-            ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-            include /etc/letsencrypt/options-ssl-nginx.conf;
-            ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+              upstream mongo_backend {
+                  server 127.0.0.1:$MONGO_PORT;
+              }
 
-            location /mongo/ {
-              proxy_pass http://localhost:$MONGO_PORT/;
-              proxy_set_header Host \$host;
-              # auth_basic "MongoDB Access";
-              # auth_basic_user_file /etc/nginx/.htpasswd;
-            }
-
-            location /postgres/ {
-              proxy_pass http://localhost:$POSTGRES_PORT/;
-              proxy_set_header Host \$host;
-              # auth_basic "PostgreSQL Access";
-              # auth_basic_user_file /etc/nginx/.htpasswd;
-            }
+              server {
+                  listen 27018 ssl;
+                  proxy_pass mongo_backend;
+                  ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+                  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+                  proxy_timeout 10m;
+                  proxy_connect_timeout 10s;
+              }
           }
           CONFIG
 
