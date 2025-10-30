@@ -35,12 +35,10 @@ jobs:
           pip install --user yamllint
 
       - name: Yaml-lint workflows & actions
-        if: ${{ always() }}
         run: |
           yamllint .github
 
       - name: Run actionlint
-        if: ${{ always() }}
         id: lint
         run: |
           "${{ steps.get_actionlint.outputs.executable }}" -color \
