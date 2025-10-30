@@ -19,16 +19,16 @@ on:
                 default: true
                 type: boolean
         outputs: # Output workflow have to set outside jobs
-            db-status:
+            db_status:
                 description: "Status of backup"
-                value: ${{ jobs.backup.outputs.db-status }}
+                value: ${{ jobs.backup.outputs.db_status }}
 
 jobs:
     backup:
         name: Backup Databases on Remote Server
         runs-on: ubuntu-latest
         outputs:
-            db-status: ${{ steps.backup-step.outputs.db_status }}
+            db_status: ${{ steps.backup-step.outputs.db_status }}
         steps:
             - name: Setup SSH
               uses: webfactory/ssh-agent@v0.9.0

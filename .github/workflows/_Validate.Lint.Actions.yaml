@@ -55,6 +55,6 @@ jobs:
           echo "Workflow validation was successful!"  >>  "$GITHUB_STEP_SUMMARY"
 
       - name: Generate output
-        if: ${{failure() }}
+        if: failure()
         run: |
           echo "Workflow validation failure!!!"  >> "$GITHUB_STEP_SUMMARY"
