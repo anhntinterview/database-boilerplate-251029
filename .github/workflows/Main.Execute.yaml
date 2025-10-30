@@ -22,7 +22,7 @@ on:
             - main
 
 permissions:
-    contents: read
+    contents: write
     actions: write
     id-token: write
 
