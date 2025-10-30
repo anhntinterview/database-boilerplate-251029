@@ -68,17 +68,17 @@ jobs:
           echo "🔍 Checking Nginx installation..."
           if ! command -v nginx &>/dev/null; then
             echo "📦 Installing Nginx..."
-            echo "221089abcdE%" | sudo -S apt update -y
-            echo "221089abcdE%" | sudo -S apt install nginx -y
-            echo "221089abcdE%" | sudo -S systemctl enable nginx
-            echo "221089abcdE%" | sudo -S systemctl start nginx
+            echo "$SERVER_PASSWORD" | sudo -S apt update -y
+            echo "$SERVER_PASSWORD" | sudo -S apt install nginx -y
+            echo "$SERVER_PASSWORD" | sudo -S systemctl enable nginx
+            echo "$SERVER_PASSWORD" | sudo -S systemctl start nginx
           fi
           echo "✅ Nginx ready."
 
           echo "🔍 Checking Certbot installation..."
           if ! command -v certbot &>/dev/null; then
             echo "📦 Installing Certbot..."
-            echo "221089abcdE%" | sudo -S apt install -y certbot python3-certbot-nginx
+            echo "$SERVER_PASSWORD" | sudo -S apt install -y certbot python3-certbot-nginx
           fi
           echo "✅ Certbot ready."
 
@@ -86,7 +86,7 @@ jobs:
           # 1. Temporary HTTP config for Certbot validation
           # -----------------------------------------------------
           echo "🧱 Creating temporary HTTP-only config for $DOMAIN ..."
-          echo "221089abcdE%" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
+          echo "$SERVER_PASSWORD" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
           server {
             listen 80;
             server_name $DOMAIN;
@@ -103,9 +103,9 @@ jobs:
           }
           CONFIG
 
-          echo "221089abcdE%" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
-          echo "221089abcdE%" | sudo -S nginx -t
-          echo "221089abcdE%" | sudo -S systemctl reload nginx
+          echo "$SERVER_PASSWORD" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
+          echo "$SERVER_PASSWORD" | sudo -S nginx -t
+          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
           echo "✅ Temporary HTTP config loaded."
 
           # -----------------------------------------------------
@@ -116,7 +116,7 @@ jobs:
             echo "✅ SSL certificate already exists at $CERT_PATH"
           else
             echo "📜 Requesting new SSL certificate..."
-            if ! echo "221089abcdE%" | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
+            if ! echo "$SERVER_PASSWORD" | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
               echo "❌ Failed to issue SSL certificate. Check DNS and port 80 access."
               exit 1
             fi
@@ -127,7 +127,7 @@ jobs:
           # 3. Replace config with HTTPS reverse proxy + Auth
           # -----------------------------------------------------
           echo "🧱 Creating final HTTPS config for MongoDB and PostgreSQL..."
-          echo "221089abcdE%" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
+          echo "$SERVER_PASSWORD" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
           stream {
               upstream postgres_backend {
                   server 127.0.0.1:$POSTGRES_PORT;
@@ -158,8 +158,8 @@ jobs:
           CONFIG
 
           echo "🔍 Testing Nginx config..."
-          echo "221089abcdE%" | sudo -S nginx -t
-          echo "221089abcdE%" | sudo -S systemctl reload nginx
+          echo "$SERVER_PASSWORD" | sudo -S nginx -t
+          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
 
           echo "✅ Database reverse proxy configured successfully for $DOMAIN"
           echo "🌐 Mongo: https://$DOMAIN/mongo/"
@@ -174,7 +174,7 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" << 'EOF'
             set -e
             SERVER_PASSWORD="$1"
-            if ! echo "221089abcdE%" | sudo -S systemctl is-active --quiet nginx; then
+            if ! echo "$SERVER_PASSWORD" | sudo -S systemctl is-active --quiet nginx; then
               echo "❌ Nginx service not active!"
               exit 1
             fi
