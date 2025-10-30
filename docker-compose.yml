@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   app:
+    build: .
     image: ${IMAGE}:latest
     container_name: ${IMAGE}
     restart: always
