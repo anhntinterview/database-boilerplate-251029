@@ -1,22 +1,10 @@
 version: "3.8"
 
 services:
-  app:
-    build: .
-    image: ${IMAGE}:latest
-    container_name: ${IMAGE}
-    restart: always
-    env_file: .env
-    depends_on:
-      - mongo
-      - postgres
-    ports:
-      - "${PORT}:${PORT}"
-
   mongo:
     build:
-      context: .
-      dockerfile: app/mongo/Dockerfile
+      context: ./mongo
+      dockerfile: Dockerfile
     container_name: mongo
     restart: always
     volumes:
@@ -24,8 +12,8 @@ services:
 
   postgres:
     build:
-      context: .
-      dockerfile: app/postgres/Dockerfile
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: postgres
     restart: always
     volumes:
