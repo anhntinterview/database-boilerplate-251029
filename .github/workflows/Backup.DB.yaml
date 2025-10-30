@@ -101,9 +101,6 @@ jobs:
                             fi
                         fi
                     fi
-
-                    echo "✅ Backup completed at $BACKUP_PATH"
-                    exit $EXIT_CODE
                   EOF
 
                   # Capture SSH exit code
