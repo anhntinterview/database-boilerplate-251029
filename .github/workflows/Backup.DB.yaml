@@ -1,7 +1,7 @@
 name: Backup.Database
 
 on:
-    workflow_dispatch:
+    workflow_call:
         inputs:
             backup_dir:
                 description: "Path to backup directory on server"
@@ -9,18 +9,19 @@ on:
                 default: "/var/backups"
                 type: string
             mongo_enabled:
+                description: "Active MongoDB backup"
                 required: false
-                type: boolean
                 default: true
-                description: "active mongo db"
+                type: boolean
             postgres_enabled:
+                description: "Active PostgreSQL backup"
                 required: false
-                type: boolean
                 default: true
-                description: "active postgres db"
-    push:
-        branches:
-            - main
+                type: boolean
+        outputs: # Output workflow have to set outside jobs
+            db-status:
+                description: "Status of backup"
+                value: ${{ jobs.backup.outputs.db-status }}
 
 jobs:
     backup:
@@ -28,7 +29,6 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             db-status: ${{ steps.backup-step.outputs.db_status }}
-
         steps:
             - name: Setup SSH
               uses: webfactory/ssh-agent@v0.9.0
