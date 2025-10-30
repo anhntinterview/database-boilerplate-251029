@@ -68,29 +68,19 @@ jobs:
           echo "🔍 Checking Nginx installation..."
           if ! command -v nginx &>/dev/null; then
             echo "📦 Installing Nginx..."
-            echo $SERVER_PASSWORD | sudo -S apt update -y
-            echo $SERVER_PASSWORD | sudo -S apt install nginx -y
-            echo $SERVER_PASSWORD | sudo -S systemctl enable nginx
-            echo $SERVER_PASSWORD | sudo -S systemctl start nginx
+            echo "$SERVER_PASSWORD" | sudo -S apt update -y
+            echo "$SERVER_PASSWORD" | sudo -S apt install nginx -y
+            echo "$SERVER_PASSWORD" | sudo -S systemctl enable nginx
+            echo "$SERVER_PASSWORD" | sudo -S systemctl start nginx
           fi
           echo "✅ Nginx ready."
 
           echo "🔍 Checking Certbot installation..."
           if ! command -v certbot &>/dev/null; then
             echo "📦 Installing Certbot..."
-            echo $SERVER_PASSWORD | sudo -S apt install -y certbot python3-certbot-nginx
+            echo "$SERVER_PASSWORD" | sudo -S apt install -y certbot python3-certbot-nginx
           fi
           echo "✅ Certbot ready."
-
-          # echo "🔍 Checking htpasswd..."
-          # if ! command -v htpasswd &>/dev/null; then
-          #   echo "📦 Installing apache2-utils..."
-          #   echo $SERVER_PASSWORD | sudo -S apt install -y apache2-utils
-          # fi
-          # echo "✅ htpasswd ready."
-
-          # # Basic Auth setup
-          # echo $SERVER_PASSWORD | sudo -S htpasswd -cb /etc/nginx/.htpasswd "$USER" "$SERVER_PASSWORD"
 
           # -----------------------------------------------------
           # 1. Temporary HTTP config for Certbot validation
@@ -113,9 +103,9 @@ jobs:
           }
           CONFIG
 
-          echo $SERVER_PASSWORD | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
-          echo $SERVER_PASSWORD | sudo -S nginx -t
-          echo $SERVER_PASSWORD | sudo -S systemctl reload nginx
+          echo "$SERVER_PASSWORD" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
+          echo "$SERVER_PASSWORD" | sudo -S nginx -t
+          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
           echo "✅ Temporary HTTP config loaded."
 
           # -----------------------------------------------------
@@ -126,7 +116,7 @@ jobs:
             echo "✅ SSL certificate already exists at $CERT_PATH"
           else
             echo "📜 Requesting new SSL certificate..."
-            if ! echo $SERVER_PASSWORD | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
+            if ! echo "$SERVER_PASSWORD" | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
               echo "❌ Failed to issue SSL certificate. Check DNS and port 80 access."
               exit 1
             fi
@@ -168,8 +158,8 @@ jobs:
           CONFIG
 
           echo "🔍 Testing Nginx config..."
-          echo $SERVER_PASSWORD | sudo -S nginx -t
-          echo $SERVER_PASSWORD | sudo -S systemctl reload nginx
+          echo "$SERVER_PASSWORD" | sudo -S nginx -t
+          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
 
           echo "✅ Database reverse proxy configured successfully for $DOMAIN"
           echo "🌐 Mongo: https://$DOMAIN/mongo/"
@@ -184,7 +174,7 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" << 'EOF'
             set -e
             SERVER_PASSWORD="$1"
-            if ! echo $SERVER_PASSWORD | sudo -S systemctl is-active --quiet nginx; then
+            if ! echo "$SERVER_PASSWORD" | sudo -S systemctl is-active --quiet nginx; then
               echo "❌ Nginx service not active!"
               exit 1
             fi
