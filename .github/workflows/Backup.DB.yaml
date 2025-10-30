@@ -42,6 +42,7 @@ jobs:
                   chmod 644 ~/.ssh/known_hosts
 
             - name: Run database backups
+              id: run-backup
               env:
                   SERVER_HOST: ${{ secrets.SERVER_HOST }}
                   SERVER_USER: ${{ secrets.SERVER_USER }}
