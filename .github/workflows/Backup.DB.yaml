@@ -1,7 +1,7 @@
 name: Backup.Database
 
 on:
-    workflow_call:
+    workflow_dispatch:
         inputs:
             backup_dir:
                 description: "Path to backup directory on server"
@@ -12,11 +12,15 @@ on:
                 required: false
                 type: boolean
                 default: true
+                description: "active mongo db"
             postgres_enabled:
                 required: false
                 type: boolean
                 default: true
-
+                description: "active postgres db"
+    push:
+        branches:
+            - main
 jobs:
     backup:
         name: Backup Databases on Remote Server
