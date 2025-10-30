@@ -102,6 +102,8 @@ jobs:
         runs-on: ubuntu-latest
         needs: deploy
         outputs:
+            major: ${{ steps.version.outputs.major }}
+            minor: ${{ steps.version.outputs.minor }}
             next_patch: ${{ steps.version.outputs.next_patch }}
         steps:
             - name: Checkout repository
