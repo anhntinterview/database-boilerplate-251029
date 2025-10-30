@@ -9,6 +9,8 @@ on:
         required: true
       SERVER_USER:
         required: true
+      DOMAIN_NAME:
+        required: true
       SERVER_APP_DIR:
         required: true
       SERVER_SSH_PORT:

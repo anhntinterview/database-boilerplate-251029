@@ -92,6 +92,7 @@ jobs:
             SSH_PORT: ${{ secrets.SSH_PORT }}
             MONGO_PORT: ${{ secrets.MONGO_PORT }}
             POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+            DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
     # ========================
     # 4️⃣ VERSION TAG
