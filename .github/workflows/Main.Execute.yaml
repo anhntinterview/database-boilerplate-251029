@@ -72,7 +72,6 @@ jobs:
             SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
             SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
             SSH_PORT: ${{ secrets.SSH_PORT }}
-            DB_TOKEN: ${{ secrets.DB_TOKEN }}
 
     # ========================
     # 3️⃣ SETUP NGINX PROXY
