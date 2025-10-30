@@ -17,6 +17,8 @@ on:
         required: true
       SSH_PORT:
         required: true
+      DB_TOKEN:
+        required: true
 jobs:
   deploy:
     name: Build, Copy & Deploy to server
