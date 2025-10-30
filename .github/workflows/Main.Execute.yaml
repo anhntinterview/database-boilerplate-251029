@@ -111,19 +111,21 @@ jobs:
               id: version
               run: |
                   LATEST=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+                  MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
+                  MINOR=$(echo "$LATEST" | cut -d. -f2)
                   PATCH=$(echo "$LATEST" | cut -d. -f3)
                   NEXT=$((PATCH + 1))
+                  echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+                  echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
                   echo "next_patch=$NEXT" >> "$GITHUB_OUTPUT"
-                  echo "📦 Latest tag: $LATEST"
-                  echo "➡️ Next patch version: $NEXT"
 
     tag:
         name: Create GitHub Tag
         needs: [deploy, tag-version]
         uses: anhntinterview/database-boilerplate-251029/.github/workflows/Create.GitHub.Tag.yaml@ci/setup-workflows
         with:
-            major: ${{ inputs.major }}
-            minor: ${{ inputs.minor }}
+            major: ${{ needs.tag-version.outputs.major }}
+            minor: ${{ needs.tag-version.outputs.minor }}
             patch: ${{ needs.tag-version.outputs.next_patch }}
 
     # ========================
