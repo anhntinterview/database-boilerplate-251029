@@ -86,6 +86,22 @@ jobs:
 
             if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ]; then
               echo "🚀 Starting Docker Compose..."
+
+              # --- Ensure Docker Compose (plugin or standalone) is installed ---
+              if ! docker compose version >/dev/null 2>&1; then
+                echo "⚙️ Docker Compose plugin not found, checking standalone version..."
+                if ! command -v docker-compose >/dev/null 2>&1; then
+                  echo "⚙️ Installing latest standalone Docker Compose..."
+                  sudo -S curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                  sudo -S chmod +x /usr/local/bin/docker-compose
+                  echo "✅ Standalone Docker Compose installed!"
+                else
+                  echo "✅ Found existing standalone Docker Compose."
+                fi
+              else
+                echo "✅ Docker Compose plugin available."
+              fi
+
               if docker compose version >/dev/null 2>&1; then
                 echo "$SERVER_PASSWORD" | sudo -S docker compose up -d --build --remove-orphans
               else
