@@ -61,9 +61,17 @@ jobs:
     # ========================
     deploy:
         name: Deploy Containers
-        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.DB.yaml@ci/setup-workflows
         needs: backup
+        uses: anhntinterview/database-boilerplate-251029/.github/workflows/Deploy.DB.yaml@ci/setup-workflows
         if: ${{ needs.backup.outputs.db_status == 'backup-successful' || needs.backup.outputs.db_status == 'database-not-installed' }}
+        secrets:
+            SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+            SERVER_HOST: ${{ secrets.SERVER_HOST }}
+            SERVER_USER: ${{ secrets.SERVER_USER }}
+            SERVER_APP_DIR: ${{ secrets.SERVER_APP_DIR }}
+            SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
+            SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+            SSH_PORT: ${{ secrets.SSH_PORT }}
 
     # ========================
     # 3️⃣ SETUP NGINX PROXY
