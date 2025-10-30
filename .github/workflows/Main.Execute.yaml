@@ -50,6 +50,11 @@ jobs:
             backup_dir: "/var/backups"
             mongo_enabled: true
             postgres_enabled: true
+        secrets:
+            SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+            SERVER_HOST: ${{ secrets.SERVER_HOST }}
+            SERVER_USER: ${{ secrets.SERVER_USER }}
+            SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
 
     # ========================
     # 2️⃣ DEPLOY CONTAINERS
