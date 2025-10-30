@@ -115,12 +115,3 @@ jobs:
             echo "✅ Deployment complete!"
             echo "$SERVER_PASSWORD" | sudo -S docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
           EOF
-      - name: Verify deployed commit
-        run: |
-          echo "Verifying deployed patch..."
-          ssh -p "${{ secrets.SERVER_SSH_PORT }}" ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            cd ${{ secrets.SERVER_APP_DIR }} && \
-            echo 'Dockerfile status:' && ls -la Dockerfile || echo 'No Dockerfile' && \
-            echo 'Compose status:' && head -n 10 docker-compose.yml && \
-            echo 'Running containers:' && sudo docker ps
-          "
