@@ -132,6 +132,7 @@ jobs:
           # 2. Issue SSL certificate (standalone mode)
           # -----------------------------------------------------
           echo "🔍 Checking SSL certificate for \$DOMAIN..."
+          CERT_PATH="/etc/letsencrypt/live/${DOMAIN}"
           if [ -f "$CERT_PATH/fullchain.pem" ]; then
             echo "✅ SSL certificate already exists at $CERT_PATH"
           else
@@ -150,8 +151,6 @@ jobs:
           # -----------------------------------------------------
           # 3. Verify certificate existence
           # -----------------------------------------------------
-          CERT_PATH="/etc/letsencrypt/live/${DOMAIN}"
-
           if [ ! -f "$CERT_PATH/fullchain.pem" ]; then
             echo "⚠️ Certificate for $DOMAIN not found in $CERT_PATH"
             echo "🔍 Searching for existing certificates..."
@@ -181,22 +180,23 @@ jobs:
           }
 
           server {
-              listen 15432 ssl;
+              listen 15432; # Using TLS passthrough inside psql
+              # listen 15432 ssl;
 
               # Proxy TCP
               proxy_pass postgres_backend;
 
               # SSL
-              ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+              # ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+              # ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
               proxy_connect_timeout 10s;
 
               # SSL options safety
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
+              # ssl_protocols TLSv1.2 TLSv1.3;
+              # ssl_ciphers HIGH:!aNULL:!MD5;
           }
 
           # --- MongoDB Proxy ---
@@ -205,22 +205,23 @@ jobs:
           }
 
           server {
-              listen 27018 ssl;
+              listen 27018; # Using TLS passthrough inside mongod
+              # listen 27018 ssl;
 
               # Proxy TCP
               proxy_pass mongo_backend;
 
               # SSL
-              ssl_certificate     ${CERT_PATH}/fullchain.pem;
-              ssl_certificate_key ${CERT_PATH}/privkey.pem;
+              # ssl_certificate     ${CERT_PATH}/fullchain.pem;
+              # ssl_certificate_key ${CERT_PATH}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
               proxy_connect_timeout 10s;
 
               # SSL options safety
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
+              # ssl_protocols TLSv1.2 TLSv1.3;
+              # ssl_ciphers HIGH:!aNULL:!MD5;
           }
 
           CONFIG

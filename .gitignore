@@ -73,3 +73,5 @@ crash.log
 # === Sensitive variables ===
 **/terraform.tfvars        # Contains credentials or configuration data (if sensitive)
 *.auto.tfvars
+
+ca.crt
