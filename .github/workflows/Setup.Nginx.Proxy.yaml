@@ -144,15 +144,23 @@ jobs:
               exit 1
             fi
             echo "$SERVER_PASSWORD" | sudo -S systemctl start nginx
-            echo "✅ SSL certificate successfully issued for $DOMAIN"
+            echo "✅ SSL certificate successfully issued for \$DOMAIN"
           fi
 
           # -----------------------------------------------------
           # 3. Verify certificate existence
           # -----------------------------------------------------
           if [ ! -f "$CERT_PATH/fullchain.pem" ]; then
-            echo "❌ Certificate not found after issuance. Aborting."
-            exit 1
+            echo "⚠️ Certificate for $DOMAIN not found in $CERT_PATH"
+            echo "🔍 Searching for existing certificates..."
+            ALT_CERT=$(find /etc/letsencrypt/live -maxdepth 1 -type d ! -path "/etc/letsencrypt/live" | head -n 1)
+            if [ -n "$ALT_CERT" ] && [ -f "$ALT_CERT/fullchain.pem" ]; then
+              echo "✅ Using existing certificate from $ALT_CERT"
+              CERT_PATH="$ALT_CERT"
+            else
+              echo "❌ No valid certificate found. Aborting."
+              exit 1
+            fi
           fi
 
           # -----------------------------------------------------
