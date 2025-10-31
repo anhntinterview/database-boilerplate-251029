@@ -34,5 +34,4 @@ EXPOSE 27017
 # Start MongoDB with TLS, allow self-signed certs
 CMD ["mongod", "--auth", "--tlsMode", "requireTLS", \
      "--tlsCertificateKeyFile", "/etc/mongo/ssl/mongo.crt", \
-     "--tlsCAFile", "/etc/mongo/ssl/ca.crt", \
-     "--setParameter", "tlsAllowInvalidCertificates=true"]
+     "--tlsCAFile", "/etc/mongo/ssl/ca.crt"]
