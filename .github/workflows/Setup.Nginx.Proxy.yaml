@@ -63,7 +63,7 @@ jobs:
           MONGO_PORT="$3"
           POSTGRES_PORT="$4"
 
-          NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}.conf"
+          NGINX_CONF="/etc/nginx/streams-enabled/${DOMAIN}.conf"
 
           echo "🔍 Checking Nginx installation..."
           if ! command -v nginx &>/dev/null; then
@@ -83,83 +83,49 @@ jobs:
           echo "✅ Certbot ready."
 
           # -----------------------------------------------------
-          # 1. Temporary HTTP config for Certbot validation
+          # 1. HTTP config for Certbot validation
           # -----------------------------------------------------
-          echo "🧱 Creating temporary HTTP-only config for $DOMAIN ..."
+          echo "🧱 Creating temporary HTTP-only config for \$DOMAIN ..."
           echo "$SERVER_PASSWORD" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
+          # Stream TCP proxy for PostgreSQL & MongoDB no SSL
+
+          # --- PostgreSQL Proxy ---
+          upstream postgres_backend {
+              server 127.0.0.1:5432;  # original PostgreSQL port
+          }
+
           server {
-            listen 80;
-            server_name $DOMAIN;
+              listen 15432;
 
-            location /mongo/ {
-              proxy_pass http://localhost:$MONGO_PORT/;
-              proxy_set_header Host \$host;
-            }
+              # Proxy TCP
+              proxy_pass postgres_backend;
 
-            location /postgres/ {
-              proxy_pass http://localhost:$POSTGRES_PORT/;
-              proxy_set_header Host \$host;
-            }
+              # Timeout
+              proxy_timeout 10m;
+              proxy_connect_timeout 10s;
+          }
+
+          # --- MongoDB Proxy ---
+          upstream mongo_backend {
+              server 127.0.0.1:27017;  # original MongoDB port
+          }
+
+          server {
+              listen 27018;
+              
+              # Proxy TCP
+              proxy_pass mongo_backend;
+
+              # Timeout
+              proxy_timeout 10m;
+              proxy_connect_timeout 10s;
           }
           CONFIG
 
-          echo "$SERVER_PASSWORD" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/${DOMAIN}.conf
+          echo "$SERVER_PASSWORD" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/streams-enabled/${DOMAIN}.conf
           echo "$SERVER_PASSWORD" | sudo -S nginx -t
           echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
-          echo "✅ Temporary HTTP config loaded."
-
-          # -----------------------------------------------------
-          # 2. Issue SSL certificate
-          # -----------------------------------------------------
-          echo "🔍 Checking SSL certificate for $DOMAIN..."
-          if [ -d "$CERT_PATH" ] && [ -f "$CERT_PATH/fullchain.pem" ]; then
-            echo "✅ SSL certificate already exists at $CERT_PATH"
-          else
-            echo "📜 Requesting new SSL certificate..."
-            if ! echo "$SERVER_PASSWORD" | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
-              echo "❌ Failed to issue SSL certificate. Check DNS and port 80 access."
-              exit 1
-            fi
-            echo "✅ SSL certificate successfully issued for $DOMAIN"
-          fi
-
-          # -----------------------------------------------------
-          # 3. Replace config with HTTPS reverse proxy + Auth
-          # -----------------------------------------------------
-          echo "🧱 Creating final HTTPS config for MongoDB and PostgreSQL..."
-          echo "$SERVER_PASSWORD" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
-          stream {
-              upstream postgres_backend {
-                  server 127.0.0.1:$POSTGRES_PORT;
-              }
-
-              server {
-                  listen 15432 ssl;
-                  proxy_pass postgres_backend;
-                  ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-                  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-                  proxy_timeout 10m;
-                  proxy_connect_timeout 10s;
-              }
-
-              upstream mongo_backend {
-                  server 127.0.0.1:$MONGO_PORT;
-              }
-
-              server {
-                  listen 27018 ssl;
-                  proxy_pass mongo_backend;
-                  ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-                  ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-                  proxy_timeout 10m;
-                  proxy_connect_timeout 10s;
-              }
-          }
-          CONFIG
-
-          echo "🔍 Testing Nginx config..."
-          echo "$SERVER_PASSWORD" | sudo -S nginx -t
-          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
+          echo "✅ HTTP config loaded."
 
           echo "✅ Database reverse proxy configured successfully for $DOMAIN"
           echo "🌐 Mongo: https://$DOMAIN/mongo/"
