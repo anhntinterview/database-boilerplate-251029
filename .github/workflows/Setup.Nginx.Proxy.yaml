@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "⚙️ Setting up Nginx proxy for MongoDB and PostgreSQL..."
 
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$DOMAIN_NAME" "$MONGO_PORT" "$POSTGRES_PORT" <<'EOF'
+          ssh -tt ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$DOMAIN_NAME" "$MONGO_PORT" "$POSTGRES_PORT" <<'EOF'
           set -e
           SERVER_PASSWORD="$1"
           DOMAIN="$2"
