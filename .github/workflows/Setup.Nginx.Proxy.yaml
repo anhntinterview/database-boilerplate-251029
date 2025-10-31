@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "⚙️ Setting up Nginx proxy for MongoDB and PostgreSQL..."
 
-          ssh -tt ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$DOMAIN_NAME" "$MONGO_PORT" "$POSTGRES_PORT" <<'EOF'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash -s -- "$SERVER_PASSWORD" "$DOMAIN_NAME" "$MONGO_PORT" "$POSTGRES_PORT" <<'EOF'
           set -e
           SERVER_PASSWORD="$1"
           DOMAIN="$2"
@@ -86,7 +86,7 @@ jobs:
           # 1. HTTP config for Certbot validation
           # -----------------------------------------------------
           echo "🧱 Creating temporary HTTP-only config for \$DOMAIN ..."
-          echo "$SERVER_PASSWORD" | sudo -S tee "$NGINX_CONF" > /dev/null <<CONFIG
+          echo "$SERVER_PASSWORD" | sudo -S bash -c "cat > '$NGINX_CONF'" <<CONFIG
           # Stream TCP proxy for PostgreSQL & MongoDB no SSL
 
           # --- PostgreSQL Proxy ---
