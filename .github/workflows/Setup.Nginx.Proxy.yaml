@@ -150,11 +150,16 @@ jobs:
           # -----------------------------------------------------
           # 3. Verify certificate existence
           # -----------------------------------------------------
+          CERT_PATH="/etc/letsencrypt/live/${DOMAIN}"
+
           if [ ! -f "$CERT_PATH/fullchain.pem" ]; then
             echo "⚠️ Certificate for $DOMAIN not found in $CERT_PATH"
             echo "🔍 Searching for existing certificates..."
-            ALT_CERT=$(echo "$SERVER_PASSWORD" | sudo -S find /etc/letsencrypt/live -maxdepth 1 -type d ! -path "/etc/letsencrypt/live" | head -n 1)
-            if [ -n "$ALT_CERT" ] && [ -f "$ALT_CERT/fullchain.pem" ]; then
+
+            # Run find below sudo permission, password to stdin right way
+            ALT_CERT=$(echo "$SERVER_PASSWORD" | sudo -S bash -c "find /etc/letsencrypt/live -maxdepth 1 -type d ! -path '/etc/letsencrypt/live' | head -n 1")
+
+            if [ -n "$ALT_CERT" ] && echo "$SERVER_PASSWORD" | sudo -S test -f "$ALT_CERT/fullchain.pem"; then
               echo "✅ Using existing certificate from $ALT_CERT"
               CERT_PATH="$ALT_CERT"
             else
