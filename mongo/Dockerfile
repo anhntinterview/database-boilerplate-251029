@@ -7,17 +7,17 @@ ENV MONGO_HOSTNAME=${MONGO_HOSTNAME}
 
 COPY ./init/ /docker-entrypoint-initdb.d/
 
-# Create SSL directory
+# SSL directory
 RUN mkdir -p /etc/mongo/ssl && chmod 700 /etc/mongo/ssl
 
-# Generate self-signed CA
+# Generate self-signed CA (v3)
 RUN openssl genrsa -out /etc/mongo/ssl/ca.key 4096 && \
     openssl req -x509 -new -nodes -sha256 -days 3650 \
         -key /etc/mongo/ssl/ca.key \
         -out /etc/mongo/ssl/ca.crt \
         -subj "/C=VN/ST=Ho Chi Minh/L=Ho Chi Minh City/O=ssre/OU=DB/CN=MongoRootCA"
 
-# Generate MongoDB key & certificate signed by CA
+# Generate MongoDB key & cert signed by CA (v3, valid CN)
 RUN openssl genrsa -out /etc/mongo/ssl/mongo.key 4096 && \
     openssl req -new -sha256 -key /etc/mongo/ssl/mongo.key -out /etc/mongo/ssl/mongo.csr \
         -subj "/C=VN/ST=Ho Chi Minh/L=Ho Chi Minh City/O=ssre/OU=DB/CN=${MONGO_HOSTNAME}" && \
@@ -31,7 +31,8 @@ RUN chown -R mongodb:mongodb /etc/mongo/ssl && chmod 600 /etc/mongo/ssl/*
 
 EXPOSE 27017
 
-# Start MongoDB with TLS, allow self-signed certs
+# Run MongoDB with TLS
 CMD ["mongod", "--auth", "--tlsMode", "requireTLS", \
-     "--tlsCertificateKeyFile", "/etc/mongo/ssl/mongo.crt", \
-     "--tlsCAFile", "/etc/mongo/ssl/ca.crt"]
+     "--tlsCertificateKeyFile=/etc/mongo/ssl/mongo.crt", \
+     "--tlsCAFile=/etc/mongo/ssl/ca.crt", \
+     "--bind_ip_all"]

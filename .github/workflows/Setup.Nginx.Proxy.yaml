@@ -187,16 +187,16 @@ jobs:
               proxy_pass postgres_backend;
 
               # SSL
-              ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+              # ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+              # ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
               proxy_connect_timeout 10s;
 
               # SSL options safety
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
+              # ssl_protocols TLSv1.2 TLSv1.3;
+              # ssl_ciphers HIGH:!aNULL:!MD5;
           }
 
           # --- MongoDB Proxy ---
@@ -212,16 +212,16 @@ jobs:
               proxy_pass mongo_backend;
 
               # SSL
-              ssl_certificate     ${CERT_PATH}/fullchain.pem;
-              ssl_certificate_key ${CERT_PATH}/privkey.pem;
+              # ssl_certificate     ${CERT_PATH}/fullchain.pem;
+              # ssl_certificate_key ${CERT_PATH}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
               proxy_connect_timeout 10s;
 
               # SSL options safety
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
+              # ssl_protocols TLSv1.2 TLSv1.3;
+              # ssl_ciphers HIGH:!aNULL:!MD5;
           }
 
           CONFIG
