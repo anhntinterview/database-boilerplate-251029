@@ -17,7 +17,7 @@ RUN openssl genrsa -out /etc/mongo/ssl/ca.key 4096 && \
         -out /etc/mongo/ssl/ca.crt \
         -subj "/C=VN/ST=Ho Chi Minh/L=Ho Chi Minh City/O=ssre/OU=DB/CN=MongoRootCA"
 
-# Generate MongoDB key & cert signed by CA
+# Generate MongoDB key & certificate signed by CA
 RUN openssl genrsa -out /etc/mongo/ssl/mongo.key 4096 && \
     openssl req -new -sha256 -key /etc/mongo/ssl/mongo.key -out /etc/mongo/ssl/mongo.csr \
         -subj "/C=VN/ST=Ho Chi Minh/L=Ho Chi Minh City/O=ssre/OU=DB/CN=${MONGO_HOSTNAME}" && \
@@ -27,10 +27,12 @@ RUN openssl genrsa -out /etc/mongo/ssl/mongo.key 4096 && \
     cat /etc/mongo/ssl/mongo.key >> /etc/mongo/ssl/mongo.crt
 
 # Fix permissions
-RUN chown -R mongodb:mongodb /etc/mongo/ssl && chmod 600 /etc/mongo/ssl/mongo.crt
+RUN chown -R mongodb:mongodb /etc/mongo/ssl && chmod 600 /etc/mongo/ssl/*
 
 EXPOSE 27017
 
+# Start MongoDB with TLS, allow self-signed certs
 CMD ["mongod", "--auth", "--tlsMode", "requireTLS", \
      "--tlsCertificateKeyFile", "/etc/mongo/ssl/mongo.crt", \
-     "--tlsCAFile", "/etc/mongo/ssl/ca.crt"]
+     "--tlsCAFile", "/etc/mongo/ssl/ca.crt", \
+     "--setParameter", "tlsAllowInvalidCertificates=true"]
