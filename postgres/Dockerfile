@@ -7,19 +7,18 @@ ENV POSTGRES_HOSTNAME=${POSTGRES_HOSTNAME}
 
 COPY ./init/ /docker-entrypoint-initdb.d/
 
-# Implement SSL cert when build
+# Create SSL certificate
 RUN mkdir -p /var/lib/postgresql/ssl && \
-    chmod 700 /var/lib/postgresql/ssl && \
-    sh -c "openssl req -new -x509 -days 365 -nodes \
+    openssl req -new -x509 -days 365 -nodes \
         -text -out /var/lib/postgresql/ssl/server.crt \
         -keyout /var/lib/postgresql/ssl/server.key \
-        -subj '/CN=$POSTGRES_HOSTNAME'" && \
-    chmod 600 /var/lib/postgresql/ssl/server.key
+        -subj "/CN=$POSTGRES_HOSTNAME" && \
+    chmod 600 /var/lib/postgresql/ssl/server.key && \
+    chown -R postgres:postgres /var/lib/postgresql/ssl
 
-# Copy postgresql.conf to enable SSL
-RUN echo "listen_addresses = '*'" >> /var/lib/postgresql/data/postgresql.conf && \
-    echo "ssl = on" >> /var/lib/postgresql/data/postgresql.conf && \
-    echo "ssl_cert_file = '/var/lib/postgresql/ssl/server.crt'" >> /var/lib/postgresql/data/postgresql.conf && \
-    echo "ssl_key_file = '/var/lib/postgresql/ssl/server.key'" >> /var/lib/postgresql/data/postgresql.conf
+# Copy separate postgresql.conf
+COPY postgresql.conf /etc/postgresql/postgresql.conf
 
 EXPOSE 5432
+
+CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
