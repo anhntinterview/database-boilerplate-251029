@@ -211,8 +211,8 @@ jobs:
               proxy_pass mongo_backend;
 
               # SSL
-              ssl_certificate     /etc/letsencrypt/live/database.ssrengineering.tech>
-              ssl_certificate_key /etc/letsencrypt/live/database.ssrengineering.tech>
+              ssl_certificate     ${CERT_PATH}/fullchain.pem;
+              ssl_certificate_key ${CERT_PATH}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
