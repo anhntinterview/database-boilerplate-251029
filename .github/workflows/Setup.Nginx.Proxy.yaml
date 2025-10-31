@@ -78,29 +78,87 @@ jobs:
           echo "🔍 Checking Certbot installation..."
           if ! command -v certbot &>/dev/null; then
             echo "📦 Installing Certbot..."
-            echo "$SERVER_PASSWORD" | sudo -S apt install -y certbot python3-certbot-nginx
+            echo "$SERVER_PASSWORD" | sudo -S apt install -y certbot python3-certbot-nginx python3-certbot
           fi
           echo "✅ Certbot ready."
 
           # -----------------------------------------------------
-          # 1. Issue SSL certificate
+          # 1. HTTP config for Certbot validation (no SSL yet)
           # -----------------------------------------------------
-          echo "🔍 Checking SSL certificate for $DOMAIN..."
-          if [ -d "$CERT_PATH" ] && [ -f "$CERT_PATH/fullchain.pem" ]; then
+          echo "🧱 Creating temporary HTTP-only config for \$DOMAIN ..."
+          cat <<CONFIG > temp.conf
+          # Stream TCP proxy for PostgreSQL & MongoDB no SSL
+
+          # --- PostgreSQL Proxy ---
+          upstream postgres_backend {
+              server 127.0.0.1:5432;  # original PostgreSQL port
+          }
+
+          server {
+              listen 15432;
+
+              # Proxy TCP
+              proxy_pass postgres_backend;
+
+              # Timeout
+              proxy_timeout 10m;
+              proxy_connect_timeout 10s;
+          }
+
+          # --- MongoDB Proxy ---
+          upstream mongo_backend {
+              server 127.0.0.1:27017;  # original MongoDB port
+          }
+
+          server {
+              listen 27018;
+
+              # Proxy TCP
+              proxy_pass mongo_backend;
+
+              # Timeout
+              proxy_timeout 10m;
+              proxy_connect_timeout 10s;
+          }
+          CONFIG
+
+          echo "$SERVER_PASSWORD" | sudo -S mv temp.conf "$NGINX_CONF"
+
+          echo "$SERVER_PASSWORD" | sudo -S nginx -t
+          echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
+          echo "✅ HTTP config loaded."
+
+          # -----------------------------------------------------
+          # 2. Issue SSL certificate (standalone mode)
+          # -----------------------------------------------------
+          echo "🔍 Checking SSL certificate for \$DOMAIN..."
+          if [ -f "$CERT_PATH/fullchain.pem" ]; then
             echo "✅ SSL certificate already exists at $CERT_PATH"
           else
-            echo "📜 Requesting new SSL certificate..."
-            if ! echo "$SERVER_PASSWORD" | sudo -S certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
+            echo "📜 Requesting new SSL certificate (standalone mode)..."
+            echo "$SERVER_PASSWORD" | sudo -S systemctl stop nginx
+            if ! echo "$SERVER_PASSWORD" | sudo -S certbot certonly --standalone \
+              -d "$DOMAIN" --non-interactive --agree-tos -m roberthost.vn@gmail.com; then
               echo "❌ Failed to issue SSL certificate. Check DNS and port 80 access."
+              echo "$SERVER_PASSWORD" | sudo -S systemctl start nginx
               exit 1
             fi
-            echo "✅ SSL certificate successfully issued for \$DOMAIN"
+            echo "$SERVER_PASSWORD" | sudo -S systemctl start nginx
+            echo "✅ SSL certificate successfully issued for $DOMAIN"
           fi
 
           # -----------------------------------------------------
-          # 2. HTTPS config for Certbot validation
+          # 3. Verify certificate existence
           # -----------------------------------------------------
-          echo "🧱 Creating temporary HTTP-only config for \$DOMAIN ..."
+          if [ ! -f "$CERT_PATH/fullchain.pem" ]; then
+            echo "❌ Certificate not found after issuance. Aborting."
+            exit 1
+          fi
+
+          # -----------------------------------------------------
+          # 4. Replace config with SSL-enabled TCP reverse proxy
+          # -----------------------------------------------------
+          echo "🧱 Creating final HTTPS config for MongoDB and PostgreSQL..."
           cat <<CONFIG > temp.conf
           # Stream TCP proxy for PostgreSQL & MongoDB with SSL
 
@@ -116,8 +174,8 @@ jobs:
               proxy_pass postgres_backend;
 
               # SSL
-              ssl_certificate     /etc/letsencrypt/live/database.ssrengineering.te>
-              ssl_certificate_key /etc/letsencrypt/live/database.ssrengineering.te>
+              ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
               # Timeout
               proxy_timeout 10m;
@@ -151,13 +209,15 @@ jobs:
               ssl_protocols TLSv1.2 TLSv1.3;
               ssl_ciphers HIGH:!aNULL:!MD5;
           }
+
           CONFIG
 
           echo "$SERVER_PASSWORD" | sudo -S mv temp.conf "$NGINX_CONF"
 
+          echo "🔍 Testing Nginx config..."
+
           echo "$SERVER_PASSWORD" | sudo -S nginx -t
           echo "$SERVER_PASSWORD" | sudo -S systemctl reload nginx
-          echo "✅ HTTP config loaded."
 
           echo "✅ Database reverse proxy configured successfully for $DOMAIN"
           echo "🌐 Mongo: https://$DOMAIN/mongo/"
