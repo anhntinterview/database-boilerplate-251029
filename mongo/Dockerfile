@@ -16,7 +16,7 @@ RUN openssl genrsa -out /etc/mongo/ssl/ca.key 4096 && \
         -sha256 -days 3650 -out /etc/mongo/ssl/ca.crt \
         -subj "/CN=MongoRootCA"
 
-# --- Create key & certificate for MongoDB, sign by CA ---
+# --- Create key & certificate for MongoDB, signed by CA ---
 RUN openssl genrsa -out /etc/mongo/ssl/mongo.key 4096 && \
     openssl req -new -key /etc/mongo/ssl/mongo.key -out /etc/mongo/ssl/mongo.csr \
         -subj "/CN=${MONGO_HOSTNAME}" && \
@@ -25,6 +25,9 @@ RUN openssl genrsa -out /etc/mongo/ssl/mongo.key 4096 && \
         -days 365 -sha256 && \
     cat /etc/mongo/ssl/mongo.key >> /etc/mongo/ssl/mongo.crt && \
     chmod 600 /etc/mongo/ssl/*
+
+# --- Fix permission so MongoDB user can read key/cert ---
+RUN chown -R mongodb:mongodb /etc/mongo/ssl && chmod 600 /etc/mongo/ssl/*
 
 EXPOSE 27017
 
