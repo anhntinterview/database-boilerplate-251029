@@ -112,7 +112,7 @@ jobs:
 
           server {
               listen 27018;
-              
+
               # Proxy TCP
               proxy_pass mongo_backend;
 
