@@ -86,7 +86,7 @@ jobs:
           # 1. HTTP config for Certbot validation
           # -----------------------------------------------------
           echo "🧱 Creating temporary HTTP-only config for \$DOMAIN ..."
-          echo "$SERVER_PASSWORD" | sudo -S bash -c "cat > '$NGINX_CONF'" <<CONFIG
+          cat <<CONFIG > temp.conf
           # Stream TCP proxy for PostgreSQL & MongoDB no SSL
 
           # --- PostgreSQL Proxy ---
@@ -121,6 +121,8 @@ jobs:
               proxy_connect_timeout 10s;
           }
           CONFIG
+
+          echo "$SERVER_PASSWORD" | sudo -S mv temp.conf "$NGINX_CONF"
 
           echo "$SERVER_PASSWORD" | sudo -S ln -sf "$NGINX_CONF" /etc/nginx/streams-enabled/${DOMAIN}.conf
           echo "$SERVER_PASSWORD" | sudo -S nginx -t
