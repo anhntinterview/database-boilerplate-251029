@@ -9,6 +9,8 @@ services:
     restart: always
     volumes:
       - mongo_data:/data/db
+    ports:
+      - "27017:27017"
 
   postgres:
     build:
@@ -18,6 +20,8 @@ services:
     restart: always
     volumes:
       - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 volumes:
   mongo_data:
